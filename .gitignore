@@ -3,6 +3,7 @@
 *.png
 *.pyc
 *.mp4
+*.avi
 
 build
 _build
