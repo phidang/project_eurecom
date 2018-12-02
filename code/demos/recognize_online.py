@@ -78,7 +78,7 @@ def draw_identity(img, bbs, identity_names, confidences, multiple=False):
 
 def recognize_faces(frame, clf, multiple=False):
 	faces, rgbImg = detect_faces(frame['img'], multiple)
-
+	confidences = []
 	print("\n=== {} ===".format(frame['name']))
 
 	if len(faces) > 0 and faces[0] is not None:
@@ -114,19 +114,23 @@ def recognize_faces(frame, clf, multiple=False):
 	else:
 		print("No faces are detected.")
 
-	return frame
+	return frame, confidences
 
 def getVideoName(directory):
 	return directory.split("/")[-1].split(".")[0];	
 
-def create_directory(output_directory, video_name, is_video_combine):
+def create_directory(output_directory, video_name, is_video_combine, threshold):
 	frames_directory = output_directory + "frames_" + video_name + "/"
 	video_directory = output_directory + "video_" + video_name + "/"
+	threshold_directory = output_directory + "threshold_" + str(threshold) + "_" + video_name + "/"
 	if not os.path.exists(frames_directory):
 		os.makedirs(frames_directory)
 	if not os.path.exists(video_directory) and is_video_combine:
 		os.makedirs(video_directory)
-	return frames_directory, video_directory
+	if not os.path.exists(threshold_directory):
+		os.makedirs(threshold_directory)
+
+	return frames_directory, video_directory, threshold_directory
 
 if __name__ == '__main__':
 	################# Parse Arguments ####################
@@ -162,6 +166,9 @@ if __name__ == '__main__':
 	parser.add_argument('--multi', help="Infer multiple faces in image", 
 		action="store_true")
 
+	parser.add_argument('--threshold', type=float,
+                        help="Threshold of probability [0-1] to save the image", default=0.9)
+
 	args = parser.parse_args()
 
 	#####################################################
@@ -173,8 +180,8 @@ if __name__ == '__main__':
 		else:
 			(le, clf) = pickle.load(f, encoding='latin1')
 
-	out_frames_dir, out_video_dir = create_directory(args.outDir, 
-		getVideoName(args.videoDir), args.combineVideo)
+	out_frames_dir, out_video_dir, out_threshold_dir = create_directory(args.outDir, 
+		getVideoName(args.videoDir), args.combineVideo, args.threshold)
 	
 	align = openface.AlignDlib(args.dlibFacePredictor)
 	net = openface.TorchNeuralNet(args.networkModel, imgDim=args.imgDim,
@@ -199,7 +206,11 @@ if __name__ == '__main__':
 	    	'img': img,
 	    	'name': str(cnt)+'.jpg'
 	    }
-		frame = recognize_faces(frame, clf, args.multi)
+		frame, confidences = recognize_faces(frame, clf, args.multi)
+
+		# write to frames and video
+		if len(confidences)>0 and np.max(confidences)>args.threshold:
+			cv2.imwrite(out_threshold_dir + frame['name'], frame['img'])
 		cv2.imwrite(out_frames_dir + frame['name'], frame['img'])
 		if (args.combineVideo): # Save video with prediction
 			video.write(frame['img'])
