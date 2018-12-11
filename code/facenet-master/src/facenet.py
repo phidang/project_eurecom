@@ -32,7 +32,7 @@ from subprocess import Popen, PIPE
 import tensorflow as tf
 import numpy as np
 from scipy import misc
-from sklearn.model_selection import KFold
+from sklearn.cross_validation import KFold
 from scipy import interpolate
 from tensorflow.python.training import training
 import random

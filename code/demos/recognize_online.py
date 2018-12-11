@@ -206,6 +206,7 @@ if __name__ == '__main__':
 	    	'img': img,
 	    	'name': str(cnt)+'.jpg'
 	    }
+	    
 		frame, confidences = recognize_faces(frame, clf, args.multi)
 
 		# write to frames and video

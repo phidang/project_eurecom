@@ -135,7 +135,7 @@ def train(args):
     elif args.classifier == 'GMM':  # Doesn't work best
         clf = GMM(n_components=nClasses)
     elif args.classifier == 'KNN':
-        clf = KNeighborsClassifier(n_neighbors=5)
+        clf = KNeighborsClassifier(n_neighbors=1)
     elif args.classifier == 'Softmax':
         clf = LogisticRegression(random_state=0, solver='lbfgs', 
             multi_class='multinomial')
@@ -241,8 +241,8 @@ if __name__ == '__main__':
         type=str,
         choices=[
             'LinearSvm',
-            'KNN',
             'Softmax',
+            'KNN',
             'GridSearchSvm',
             'GMM',
             'RadialSvm',
