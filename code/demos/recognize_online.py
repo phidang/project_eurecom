@@ -18,6 +18,7 @@ from sklearn.svm import SVC
 from sklearn.grid_search import GridSearchCV
 from sklearn.mixture import GMM
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
 
 
 fileDir = os.path.dirname(os.path.realpath(__file__))
@@ -38,16 +39,18 @@ def detect_faces(img, multiple=False):
 
 def getRep(faces, rgbImg):
 	reps = []
+	aligned_faces = []
 	for face in faces:
 		alignedFace = align.align(args.imgDim, rgbImg, face,
             landmarkIndices=openface.AlignDlib.OUTER_EYES_AND_NOSE)
+		aligned_faces.append(alignedFace)
 		if alignedFace is not None:
 			rep = net.forward(alignedFace)
 			reps.append((face.center().x, rep))
 		else:
 			raise Exception("Unable to align image")
 	#sreps = sorted(reps, key=lambda x: x[0])
-	return reps
+	return reps, aligned_faces
 
 def draw_bb(img, bbs, multiple=False):
 	if multiple:
@@ -79,11 +82,12 @@ def draw_identity(img, bbs, identity_names, confidences, multiple=False):
 def recognize_faces(frame, clf, multiple=False):
 	faces, rgbImg = detect_faces(frame['img'], multiple)
 	confidences = []
+	persons = []
 	print("\n=== {} ===".format(frame['name']))
 
 	if len(faces) > 0 and faces[0] is not None:
 		draw_bb(frame['img'], faces, multiple)
-		reps = getRep(faces, rgbImg)
+		reps, align_faces = getRep(faces, rgbImg)
 		if len(reps) > 1:
 			print("List of faces in image from left to right")
 		elif len(reps) == 0:
@@ -100,30 +104,36 @@ def recognize_faces(frame, clf, multiple=False):
 			maxI = np.argmax(predictions)
 			person = le.inverse_transform(maxI)
 			persons.append(person.decode('utf-8'))
-			confidence = predictions[maxI]
-			confidences.append(confidence)
-			if multiple:
-				print("Predict {} @ x={} with {:.2f} confidence.".format(person.decode('utf-8'),bbx,
-					confidence))
-			else:
-				print("Predict {} with {:.2f} confidence.".format(person.decode('utf-8'), confidence))
+			# confidence = predictions[maxI]
+			# confidences.append(confidence)
+			# if multiple:
+			# 	print("Predict {} @ x={} with {:.2f} confidence.".format(person.decode('utf-8'),bbx,
+			# 		confidence))
+			# else:
+			# 	print("Predict {} with {:.2f} confidence.".format(person.decode('utf-8'), confidence))
 			if isinstance(clf, GMM):
 				dist = np.linalg.norm(rep - clf.means_[maxI])
 				print("  + Distance from the mean: {}".format(dist))
+			if isinstance(clf, KNeighborsClassifier):
+				dist, ind = clf.kneighbors(rep, 1)
+				confidence = dist[0][0]
+				confidences.append(confidence)
+				print("Predict {} @ x={} with {:.2f} confidence.".format(person.decode('utf-8'),bbx,
+					confidence))
 		draw_identity(frame['img'], faces, persons, confidences, multiple)
 	else:
 		print("No faces are detected.")
 
-	return frame, confidences
+	return frame, confidences, persons
 
 def getVideoName(directory):
 	return directory.split("/")[-1].split(".")[0];	
 
-def create_directory(output_directory, video_name, is_video_combine, threshold):
+def create_directory(output_directory, video_name, is_save_all_frames, is_video_combine, threshold):
 	frames_directory = output_directory + "frames_" + video_name + "/"
 	video_directory = output_directory + "video_" + video_name + "/"
 	threshold_directory = output_directory + "threshold_" + str(threshold) + "_" + video_name + "/"
-	if not os.path.exists(frames_directory):
+	if not os.path.exists(frames_directory) and is_save_all_frames:
 		os.makedirs(frames_directory)
 	if not os.path.exists(video_directory) and is_video_combine:
 		os.makedirs(video_directory)
@@ -159,6 +169,10 @@ if __name__ == '__main__':
 	parser.add_argument('--classifierModel', type=str,
         help='The Python pickle representing the classifier. This is NOT the Torch network model, which can be set with --networkModel.')
 
+	parser.add_argument('--saveAllFrames',
+		help='Turn on this to save all frames',
+        action="store_true")
+
 	parser.add_argument('--combineVideo',
 		help='Turn on this to combine frames into video.',
         action="store_true")
@@ -167,7 +181,7 @@ if __name__ == '__main__':
 		action="store_true")
 
 	parser.add_argument('--threshold', type=float,
-                        help="Threshold of probability [0-1] to save the image", default=0.9)
+                        help="Threshold of probability [0-1] to save the image", default=0.0)
 
 	args = parser.parse_args()
 
@@ -181,7 +195,7 @@ if __name__ == '__main__':
 			(le, clf) = pickle.load(f, encoding='latin1')
 
 	out_frames_dir, out_video_dir, out_threshold_dir = create_directory(args.outDir, 
-		getVideoName(args.videoDir), args.combineVideo, args.threshold)
+		getVideoName(args.videoDir), args.saveAllFrames, args.combineVideo, args.threshold)
 	
 	align = openface.AlignDlib(args.dlibFacePredictor)
 	net = openface.TorchNeuralNet(args.networkModel, imgDim=args.imgDim,
@@ -207,13 +221,16 @@ if __name__ == '__main__':
 	    	'name': str(cnt)+'.jpg'
 	    }
 	    
-		frame, confidences = recognize_faces(frame, clf, args.multi)
+		frame, confidences, persons = recognize_faces(frame, clf, args.multi)
 
 		# write to frames and video
-		if len(confidences)>0 and np.max(confidences)>args.threshold:
+		if len(confidences)>0 and np.max(confidences)>args.threshold and "BrigitteBardot" in persons:
 			cv2.imwrite(out_threshold_dir + frame['name'], frame['img'])
-		cv2.imwrite(out_frames_dir + frame['name'], frame['img'])
-		if (args.combineVideo): # Save video with prediction
+
+		if args.saveAllFrames:
+			cv2.imwrite(out_frames_dir + frame['name'], frame['img'])
+
+		if args.combineVideo: # Save video with prediction
 			video.write(frame['img'])
 
 		rval, img = vc.read()
