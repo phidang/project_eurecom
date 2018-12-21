@@ -239,7 +239,7 @@ if __name__ == '__main__':
 		if args.saveFaces and len(faces)>0:
 			i = 0
 			for face in faces:
-				crop_face = img[face.top():face.bottom(), face.left():face.right()]
+				crop_face = img[face.top()-10:face.bottom()+10, face.left()-10:face.right()+10]
 				save_dir = out_faces_dir + persons[i] + "/"
 				if not os.path.exists(save_dir):
 					os.makedirs(save_dir)
