@@ -118,29 +118,33 @@ def recognize_faces(frame, clf, multiple=False):
 				dist, ind = clf.kneighbors(rep, 1)
 				confidence = dist[0][0]
 				confidences.append(confidence)
-				print("Predict {} @ x={} with {:.2f} confidence.".format(person.decode('utf-8'),bbx,
+				print("Predict {} @ x={} with {:.2f} confidence.".format(person.decode('utf-8'), bbx,
 					confidence))
 		draw_identity(frame['img'], faces, persons, confidences, multiple)
 	else:
 		print("No faces are detected.")
 
-	return frame, confidences, persons
+	return frame, confidences, faces, persons
 
 def getVideoName(directory):
 	return directory.split("/")[-1].split(".")[0];	
 
-def create_directory(output_directory, video_name, is_save_all_frames, is_video_combine, threshold):
-	frames_directory = output_directory + "frames_" + video_name + "/"
-	video_directory = output_directory + "video_" + video_name + "/"
-	threshold_directory = output_directory + "threshold_" + str(threshold) + "_" + video_name + "/"
-	if not os.path.exists(frames_directory) and is_save_all_frames:
+def create_directory(args):
+	video_name = getVideoName(args.videoDir)
+	frames_directory = args.outDir + "frames_" + video_name + "/"
+	video_directory = args.outDir + "video_" + video_name + "/"
+	threshold_directory = args.outDir + "threshold_" + str(args.threshold) + "_" + video_name + "/"
+	faces_directory = args.outDir + "faces_" + video_name + "/" 
+	if not os.path.exists(frames_directory) and args.saveAllFrames:
 		os.makedirs(frames_directory)
-	if not os.path.exists(video_directory) and is_video_combine:
+	if not os.path.exists(video_directory) and args.combineVideo:
 		os.makedirs(video_directory)
+	if not os.path.exists(faces_directory) and args.saveFaces:
+		os.makedirs(faces_directory)
 	if not os.path.exists(threshold_directory):
 		os.makedirs(threshold_directory)
 
-	return frames_directory, video_directory, threshold_directory
+	return frames_directory, video_directory, threshold_directory, faces_directory
 
 if __name__ == '__main__':
 	################# Parse Arguments ####################
@@ -173,9 +177,13 @@ if __name__ == '__main__':
 		help='Turn on this to save all frames',
         action="store_true")
 
-	parser.add_argument('--combineVideo',
-		help='Turn on this to combine frames into video.',
+	parser.add_argument('--saveFaces',
+		help='Turn on this to save faces with their corresponding predictions',
         action="store_true")
+
+	parser.add_argument('--combineVideo',
+		help='Turn on this to combine frames into video.', 
+		action="store_true")
 
 	parser.add_argument('--multi', help="Infer multiple faces in image", 
 		action="store_true")
@@ -194,8 +202,7 @@ if __name__ == '__main__':
 		else:
 			(le, clf) = pickle.load(f, encoding='latin1')
 
-	out_frames_dir, out_video_dir, out_threshold_dir = create_directory(args.outDir, 
-		getVideoName(args.videoDir), args.saveAllFrames, args.combineVideo, args.threshold)
+	out_frames_dir, out_video_dir, out_threshold_dir, out_faces_dir = create_directory(args)
 	
 	align = openface.AlignDlib(args.dlibFacePredictor)
 	net = openface.TorchNeuralNet(args.networkModel, imgDim=args.imgDim,
@@ -216,16 +223,28 @@ if __name__ == '__main__':
 				cv2.VideoWriter_fourcc(*'DIVX'), 24, (width,height))
 
 	while rval:
+		#img = cv2.resize(img, (0,0), fx=0.4, fy=0.4) 
 		frame = {
-	    	'img': img,
+	    	'img': img.copy(),
 	    	'name': str(cnt)+'.jpg'
 	    }
-	    
-		frame, confidences, persons = recognize_faces(frame, clf, args.multi)
+
+		frame, confidences, faces, persons = recognize_faces(frame, clf, args.multi)
 
 		# write to frames and video
-		if len(confidences)>0 and np.max(confidences)>args.threshold and "BrigitteBardot" in persons:
+		if len(confidences)>0 and np.max(confidences)>args.threshold:# and "BrigitteBardot" in persons:
 			cv2.imwrite(out_threshold_dir + frame['name'], frame['img'])
+
+		# crop face and save to the corresponding prediction folder
+		if args.saveFaces and len(faces)>0:
+			i = 0
+			for face in faces:
+				crop_face = img[face.top():face.bottom(), face.left():face.right()]
+				save_dir = out_faces_dir + persons[i] + "/"
+				if not os.path.exists(save_dir):
+					os.makedirs(save_dir)
+				cv2.imwrite(save_dir + str(cnt) + "_" + str(round(confidences[i],2)) + ".jpg", crop_face)
+				i = i+1
 
 		if args.saveAllFrames:
 			cv2.imwrite(out_frames_dir + frame['name'], frame['img'])
