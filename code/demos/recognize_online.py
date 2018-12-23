@@ -223,7 +223,7 @@ if __name__ == '__main__':
 				cv2.VideoWriter_fourcc(*'DIVX'), 24, (width,height))
 
 	while rval:
-		#img = cv2.resize(img, (0,0), fx=0.4, fy=0.4) 
+		img = cv2.resize(img, (0,0), fx=0.4, fy=0.4) 
 		frame = {
 	    	'img': img.copy(),
 	    	'name': str(cnt)+'.jpg'
@@ -241,9 +241,8 @@ if __name__ == '__main__':
 			for face in faces:
 				crop_face = img[face.top()-10:face.bottom()+10, face.left()-10:face.right()+10]
 				save_dir = out_faces_dir + persons[i] + "/"
-				if not os.path.exists(save_dir):
-					os.makedirs(save_dir)
-				cv2.imwrite(save_dir + str(cnt) + "_" + str(round(confidences[i],2)) + ".jpg", crop_face)
+				cv2.imwrite(out_faces_dir + persons[i] + "_" + str(round(confidences[i],2)) + "_" + str(cnt) + ".jpg", crop_face)
+				# cv2.imwrite(save_dir_sorted + str(round(confidences[i],2)) + "_" + str(cnt) + ".jpg", crop_face)
 				i = i+1
 
 		if args.saveAllFrames:

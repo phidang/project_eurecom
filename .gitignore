@@ -4,6 +4,7 @@
 *.pyc
 *.mp4
 *.avi
+*.pkl
 
 build
 _build
