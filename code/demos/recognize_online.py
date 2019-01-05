@@ -189,7 +189,10 @@ if __name__ == '__main__':
 		action="store_true")
 
 	parser.add_argument('--threshold', type=float,
-                        help="Threshold of probability [0-1] to save the image", default=0.0)
+		help="Threshold of probability [0-1] to save the image", default=0.0)
+
+	parser.add_argument('--resizeVideoRatio', type=float,
+		help="Resize input video by a ratio. A float number required.", default=1.0)
 
 	args = parser.parse_args()
 
@@ -223,7 +226,9 @@ if __name__ == '__main__':
 				cv2.VideoWriter_fourcc(*'DIVX'), 24, (width,height))
 
 	while rval:
-		img = cv2.resize(img, (0,0), fx=0.4, fy=0.4) 
+		# Resize each frame in the video by a ratio
+		img = cv2.resize(img, (0, 0), fx=args.resizeVideoRatio, fy=args.resizeVideoRatio)
+
 		frame = {
 	    	'img': img.copy(),
 	    	'name': str(cnt)+'.jpg'
@@ -235,12 +240,12 @@ if __name__ == '__main__':
 		if len(confidences)>0 and np.max(confidences)>args.threshold:# and "BrigitteBardot" in persons:
 			cv2.imwrite(out_threshold_dir + frame['name'], frame['img'])
 
-		# crop face and save to the corresponding prediction folder
+		# crop face and save it with its corresponding person's name
 		if args.saveFaces and len(faces)>0:
 			i = 0
 			for face in faces:
 				crop_face = img[face.top()-10:face.bottom()+10, face.left()-10:face.right()+10]
-				save_dir = out_faces_dir + persons[i] + "/"
+				#save_dir = out_faces_dir + persons[i] + "/"
 				cv2.imwrite(out_faces_dir + persons[i] + "_" + str(round(confidences[i],2)) + "_" + str(cnt) + ".jpg", crop_face)
 				# cv2.imwrite(save_dir_sorted + str(round(confidences[i],2)) + "_" + str(cnt) + ".jpg", crop_face)
 				i = i+1
