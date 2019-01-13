@@ -104,13 +104,6 @@ def recognize_faces(frame, clf, multiple=False):
 			maxI = np.argmax(predictions)
 			person = le.inverse_transform(maxI)
 			persons.append(person.decode('utf-8'))
-			# confidence = predictions[maxI]
-			# confidences.append(confidence)
-			# if multiple:
-			# 	print("Predict {} @ x={} with {:.2f} confidence.".format(person.decode('utf-8'),bbx,
-			# 		confidence))
-			# else:
-			# 	print("Predict {} with {:.2f} confidence.".format(person.decode('utf-8'), confidence))
 			if isinstance(clf, GMM):
 				dist = np.linalg.norm(rep - clf.means_[maxI])
 				print("  + Distance from the mean: {}".format(dist))
@@ -118,8 +111,16 @@ def recognize_faces(frame, clf, multiple=False):
 				dist, ind = clf.kneighbors(rep, 1)
 				confidence = dist[0][0]
 				confidences.append(confidence)
-				print("Predict {} @ x={} with {:.2f} confidence.".format(person.decode('utf-8'), bbx,
-					confidence))
+				print("Predict {} @ x={} with {:.2f} confidence.".format(person.decode('utf-8'), bbx, confidence))
+			else:
+				confidence = predictions[maxI]
+				confidences.append(confidence)
+				if multiple:
+					print("Predict {} @ x={} with {:.2f} confidence.".format(person.decode('utf-8'),bbx,
+						confidence))
+				else:
+					print("Predict {} with {:.2f} confidence.".format(person.decode('utf-8'), confidence))
+
 		draw_identity(frame['img'], faces, persons, confidences, multiple)
 	else:
 		print("No faces are detected.")
@@ -141,7 +142,7 @@ def create_directory(args):
 		os.makedirs(video_directory)
 	if not os.path.exists(faces_directory) and args.saveFaces:
 		os.makedirs(faces_directory)
-	if not os.path.exists(threshold_directory):
+	if not os.path.exists(threshold_directory) and args.threshold>=0.0:
 		os.makedirs(threshold_directory)
 
 	return frames_directory, video_directory, threshold_directory, faces_directory
@@ -189,7 +190,7 @@ if __name__ == '__main__':
 		action="store_true")
 
 	parser.add_argument('--threshold', type=float,
-		help="Threshold of probability [0-1] to save the image", default=0.0)
+		help="Threshold of probability [0-1] to save the image", default=-1.0)
 
 	parser.add_argument('--resizeVideoRatio', type=float,
 		help="Resize input video by a ratio. A float number required.", default=1.0)
@@ -220,6 +221,7 @@ if __name__ == '__main__':
 	################### Face Recognition ################
 	if vc.isOpened():
 		rval , img = vc.read()
+		img = cv2.resize(img, (0, 0), fx=args.resizeVideoRatio, fy=args.resizeVideoRatio)
 		if (args.combineVideo):
 			height , width , layers = img.shape
 			video = cv2.VideoWriter(out_video_dir + 'video.avi', 
@@ -228,7 +230,6 @@ if __name__ == '__main__':
 	while rval:
 		# Resize each frame in the video by a ratio
 		img = cv2.resize(img, (0, 0), fx=args.resizeVideoRatio, fy=args.resizeVideoRatio)
-
 		frame = {
 	    	'img': img.copy(),
 	    	'name': str(cnt)+'.jpg'
@@ -237,7 +238,8 @@ if __name__ == '__main__':
 		frame, confidences, faces, persons = recognize_faces(frame, clf, args.multi)
 
 		# write to frames and video
-		if len(confidences)>0 and np.max(confidences)>args.threshold:# and "BrigitteBardot" in persons:
+		if args.threshold>=0.0 and len(confidences)>0 and np.max(confidences)>args.threshold:
+		# and "BrigitteBardot" in persons:
 			cv2.imwrite(out_threshold_dir + frame['name'], frame['img'])
 
 		# crop face and save it with its corresponding person's name

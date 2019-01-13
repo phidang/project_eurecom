@@ -24,8 +24,13 @@ person-m
 We align the faces in the raw images that we prepared. Change 8 to however many separate processes you want to run: 
 
 ```sh
-for N in {1..8}; do ./openface/util/align-dlib.py <path-to-raw-images> align outerEyesAndNose <path-to-aligned-images> --size 96 & done
+for N in {1..8}; do python ./demos/align-dlib.py <path-to-raw-dataset> align outerEyesAndNose <path-to-aligned-images> --size 96 --toGrayScale & done
 ```
+
+Arguments:
+
+- size: define the image size
+- toGrayScale: convert the image to grayscale before alignment process.
 
 If failed alignment attempts causes your directory to have too few images, you can use the utility script _openface/util/prune-dataset.py_ to deletes directories with less than a specified number of images.
 
@@ -67,5 +72,5 @@ We can perform different tasks by specifying the following arguments:
 - saveAllFrames: save all frames with recognized faces on them. Boolean value (True or False). Default: False
 - combineVideo: combine all the frames with recognized faces on them into a single video. Boolean value (True or False). Default: False
 - multi: Detect multiple faces in each frame. With this turned off, the script only recognizes the largest face in each frame. Boolean value (True or False). Default: False.
-- threshold: Save only the frames that are predicted with confidence higher than this threshold. Float number. Default: 0.0
+- threshold: Save only the frames that are predicted with confidence higher than this threshold. Float number. Default: -1.0, this means frames are not saved.
 - resizeVideoRatio: Resize the input video before processing by a ratio. Float number. Default: 1.0
