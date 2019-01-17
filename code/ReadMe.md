@@ -60,7 +60,7 @@ We can choose among different classifiers such as KNN, LinearSVM, Softmax, ect. 
 
 We are now able to recognize people from video using the trained classifier from the previous step. The command that helps us to do this is:
 ```sh
-python ./demos/recognize_online.py --classifierModel <path-to-pkl-file-in-features-directory> --multi --videoDir <path-to-video> --saveFaces --saveAllFrames
+python ./demos/recognize_online.py --classifierModel <path-to-pkl-file-in-features-directory> --multi --videoDir <path-to-video> --saveFaces --saveAllFrames --recognizeFace <person-name>
 ```
 We can perform different tasks by specifying the following arguments:
 
@@ -68,9 +68,10 @@ We can perform different tasks by specifying the following arguments:
 - videoDir: path to input video.
 - outDir: path to output folder. Default: "./output/"
 - classifierModel: path to the trained classifier (the generated .pkl file) from the previous step.
-- saveFaces: save all detected faces in the video. Boolean value (True or False). Default: False
-- saveAllFrames: save all frames with recognized faces on them. Boolean value (True or False). Default: False
-- combineVideo: combine all the frames with recognized faces on them into a single video. Boolean value (True or False). Default: False
-- multi: Detect multiple faces in each frame. With this turned off, the script only recognizes the largest face in each frame. Boolean value (True or False). Default: False.
-- threshold: Save only the frames that are predicted with confidence higher than this threshold. Float number. Default: -1.0, this means frames are not saved.
-- resizeVideoRatio: Resize the input video before processing by a ratio. Float number. Default: 1.0
+- saveFaces: save all detected faces in the video with their corresponding prediction, distance and frame number.
+- saveAllFrames: save all frames with recognized faces on them.
+- combineVideo: combine all the frames with recognized faces on them into a single video.
+- multi: Detect multiple faces in each frame. With this turned off, the script only recognizes the largest face in each frame.
+- threshold: Save only the frames that are predicted with confidence higher than this threshold. Type: float. Default: -1.0, this means frames are not saved.
+- resizeVideoRatio: Resize the input video before processing by a ratio. Type: float. Default: 1.0
+- recognizeFace: Specify the person needs to be recognized in the video. The name of the person must be same as the name specified in training set. Type: string. Default value: empty string "".

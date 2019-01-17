@@ -53,33 +53,37 @@ def getRep(faces, rgbImg):
 	return reps, aligned_faces
 
 def draw_bb(img, bbs, multiple=False):
+	green = (0, 255, 0)
 	if multiple:
 		for bb in bbs:
-			cv2.rectangle(img, (bb.left(), bb.top()), (bb.right(), bb.bottom()), (255, 0, 255), 2)
+			cv2.rectangle(img, (bb.left(), bb.top()), (bb.right(), bb.bottom()), green, 2)
 	else:
 		bb = bbs[0]
-		cv2.rectangle(img, (bb.left(), bb.top()), (bb.right(), bb.bottom()), (255, 0, 255), 2)
+		cv2.rectangle(img, (bb.left(), bb.top()), (bb.right(), bb.bottom()), green, 2)
 
-def draw_identity(img, bbs, identity_names, confidences, multiple=False):
+def draw_identity(img, bbs, identity_names, confidences, recognizeFace, multiple=False):
 	font = cv2.FONT_HERSHEY_SIMPLEX
 	red = (0, 0, 255)
 
 	if (multiple):
 		i=0
 		for bb in bbs:
-			left = (bb.left(), bb.bottom()+18)
-			cv2.putText(img, identity_names[i], left, font, 0.5, red, 2) 
-			up = (bb.left()+6, bb.bottom()-18)
-			cv2.putText(img, str(round(confidences[i], 2)), up, font, 0.7, red, 1) 
+			if recognizeFace == "" or identity_names[i]==recognizeFace:
+				left = (bb.left(), bb.bottom()+18)
+				cv2.putText(img, identity_names[i], left, font, 0.5, red, 2) 
+				up = (bb.left()+6, bb.bottom()-18)
+				#cv2.putText(img, str(round(confidences[i], 2)), up, font, 0.7, red, 1) 
+				if identity_names[i]==recognizeFace: # draw another bounding box to show the difference
+					cv2.rectangle(img, (bb.left(), bb.top()), (bb.right(), bb.bottom()), red, 2)
 			i=i+1
 	else:
 		bb = bbs[0]
 		left = (bb.left()+6, bb.bottom()+18)
 		cv2.putText(img, identity_names[0], left, font, 0.5, red, 2) 
 		up = (bb.left(), bb.bottom()-18)
-		cv2.putText(img, str(round(confidences[0], 2)), up, font, 0.7, red, 1) 
+		#cv2.putText(img, str(round(confidences[0], 2)), up, font, 0.7, red, 1) 
 
-def recognize_faces(frame, clf, multiple=False):
+def recognize_faces(frame, clf, recognizeFace, multiple=False):
 	faces, rgbImg = detect_faces(frame['img'], multiple)
 	confidences = []
 	persons = []
@@ -121,7 +125,7 @@ def recognize_faces(frame, clf, multiple=False):
 				else:
 					print("Predict {} with {:.2f} confidence.".format(person.decode('utf-8'), confidence))
 
-		draw_identity(frame['img'], faces, persons, confidences, multiple)
+		draw_identity(frame['img'], faces, persons, confidences, recognizeFace, multiple)
 	else:
 		print("No faces are detected.")
 
@@ -195,6 +199,9 @@ if __name__ == '__main__':
 	parser.add_argument('--resizeVideoRatio', type=float,
 		help="Resize input video by a ratio. A float number required.", default=1.0)
 
+	parser.add_argument('--recognizeFace', type=str,
+		help="Name of the person needs to be recognized.", default="")
+
 	args = parser.parse_args()
 
 	#####################################################
@@ -235,7 +242,7 @@ if __name__ == '__main__':
 	    	'name': str(cnt)+'.jpg'
 	    }
 
-		frame, confidences, faces, persons = recognize_faces(frame, clf, args.multi)
+		frame, confidences, faces, persons = recognize_faces(frame, clf, args.recognizeFace, args.multi)
 
 		# write to frames and video
 		if args.threshold>=0.0 and len(confidences)>0 and np.max(confidences)>args.threshold:
