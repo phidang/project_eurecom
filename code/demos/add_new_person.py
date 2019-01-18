@@ -23,12 +23,14 @@ def merge_reps_files(old_dir, new_dir, file_name):
 
 def merge_label_files(old_dir, new_dir, file_name):
 	line = subprocess.check_output(['tail', '-1', old_dir + file_name])
-	new_label = int(line.split(',')[0]) + 1
+	base_label_num = int(line.split(',')[0])
 	fout = open(old_dir + file_name, "a")
 	f = open(new_dir + file_name)
 	f.next() # skip the header
 	for line in f:
-		fout.write(str(new_label) + ',' + line.split(',')[1])
+		split_line = line.split(',')
+		new_label = base_label_num + int(split_line[0])
+		fout.write(str(new_label) + ',' + split_line[1])
 	f.close() # not really needed
 
 if __name__ == '__main__':
