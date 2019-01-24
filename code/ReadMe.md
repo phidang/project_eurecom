@@ -60,7 +60,7 @@ We can choose among different classifiers such as KNN, LinearSVM, Softmax, ect. 
 
 We are now able to recognize people from video using the trained classifier from the previous step. The command that helps us to do this is:
 ```sh
-python ./demos/recognize_online.py --classifierModel <path-to-pkl-file-in-features-directory> --multi --videoDir <path-to-video> --saveFaces --saveAllFrames --recognizeFace <person-name>
+python ./demos/recognize_online.py --classifierModel <path-to-features-directory> --multi --videoDir <path-to-video> --saveFaces --saveAllFrames --recognizeFace <person-name>
 ```
 We can perform different tasks by specifying the following arguments:
 
@@ -75,3 +75,34 @@ We can perform different tasks by specifying the following arguments:
 - threshold: Save only the frames that are predicted with confidence higher than this threshold. Type: float. Default: -1.0, this means frames are not saved.
 - resizeVideoRatio: Resize the input video before processing by a ratio. Type: float. Default: 1.0
 - recognizeFace: Specify the person needs to be recognized in the video. The name of the person must be same as the name specified in training set. Type: string. Default value: empty string "".
+
+### 6. For Adding new persons into an exist embedding:
+
+First, setup the new person images as follow.
+
+```sh
+$ tree data/new_person
+person-1
+├── image-1.jpg
+├── image-2.png
+...
+└── image-p.png
+
+...
+
+person-m
+├── image-1.png
+├── image-2.jpg
+...
+└── image-q.png
+```
+
+Then execute the following command:
+
+```sh
+python ./demos/add_new_person.py --inputDir data/new_person/ --featureDir <path-to-features-directory>
+```
+
+- featureDir: input the path to the feature directory that the new person should be added into.
+
+

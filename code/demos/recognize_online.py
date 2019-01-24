@@ -26,6 +26,14 @@ modelDir = os.path.join(fileDir, '..', 'openface', 'models')
 dlibModelDir = os.path.join(modelDir, 'dlib')
 openfaceModelDir = os.path.join(modelDir, 'openface')
 
+def crop_face_from_image(img, face):
+	top = max(0, face.top()-10)
+	bottom = min(face.bottom()+10, img.shape[0]-1)
+	left = max(0, face.left()-10)
+	right = min(face.right()+10, img.shape[1]-1)
+	crop_face = img[top:face.bottom()+10, left:face.right()+10]
+	return crop_face
+
 def detect_faces(img, multiple=False):
 	if img is None:
 		raise Exception("Unable to load image")
@@ -241,7 +249,6 @@ if __name__ == '__main__':
 	    	'img': img.copy(),
 	    	'name': str(cnt)+'.jpg'
 	    }
-
 		frame, confidences, faces, persons = recognize_faces(frame, clf, args.recognizeFace, args.multi)
 
 		# write to frames and video
@@ -253,9 +260,10 @@ if __name__ == '__main__':
 		if args.saveFaces and len(faces)>0:
 			i = 0
 			for face in faces:
-				crop_face = img[face.top()-10:face.bottom()+10, face.left()-10:face.right()+10]
+				crop_face = crop_face_from_image(img, face)
 				#save_dir = out_faces_dir + persons[i] + "/"
-				cv2.imwrite(out_faces_dir + persons[i] + "_" + str(round(confidences[i],2)) + "_" + str(cnt) + ".jpg", crop_face)
+				crop_save_dir = out_faces_dir + str(format(confidences[i],'.4f')) + "_" + persons[i] + "_" + str(cnt) + ".jpg"
+				cv2.imwrite(crop_save_dir, crop_face)
 				# cv2.imwrite(save_dir_sorted + str(round(confidences[i],2)) + "_" + str(cnt) + ".jpg", crop_face)
 				i = i+1
 
