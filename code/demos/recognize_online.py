@@ -262,7 +262,7 @@ if __name__ == '__main__':
 			for face in faces:
 				crop_face = crop_face_from_image(img, face)
 				#save_dir = out_faces_dir + persons[i] + "/"
-				crop_save_dir = out_faces_dir + str(format(confidences[i],'.4f')) + "_" + persons[i] + "_" + str(cnt) + ".jpg"
+				crop_save_dir = out_faces_dir + persons[i] + "_" + str(format(confidences[i],'.4f')) + "_" + str(cnt) + ".jpg"
 				cv2.imwrite(crop_save_dir, crop_face)
 				# cv2.imwrite(save_dir_sorted + str(round(confidences[i],2)) + "_" + str(cnt) + ".jpg", crop_face)
 				i = i+1
